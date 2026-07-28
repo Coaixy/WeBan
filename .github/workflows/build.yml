@@ -15,12 +15,8 @@ concurrency:
 
 jobs:
   build:
-    name: Build ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, ubuntu-latest, ubuntu-24.04-arm, macos-15-intel, macos-latest]
+    name: Build Windows
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v6
@@ -65,115 +61,11 @@ jobs:
           path: dist/${{ env.name }}*
           if-no-files-found: error
 
-  docker:
-    name: Docker ${{ matrix.variant }} ${{ matrix.platform }}
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        variant: [with-browser, without-browser]
-        platform: [linux/amd64, linux/arm64]
-        include:
-          - platform: linux/amd64
-            arch: amd64
-            runner: ubuntu-latest
-          - platform: linux/arm64
-            arch: arm64
-            runner: ubuntu-24.04-arm
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: docker/setup-buildx-action@v4
-
-      - uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - uses: docker/build-push-action@v7
-        id: build
-        with:
-          context: .
-          file: Dockerfile
-          target: ${{ matrix.variant }}
-          platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ secrets.DOCKERHUB_USERNAME }}/weban,push-by-digest=true,name-canonical=true,push=true
-          provenance: false
-          cache-from: type=gha,scope=docker-${{ matrix.variant }}-${{ matrix.arch }}
-          cache-to: type=gha,scope=docker-${{ matrix.variant }}-${{ matrix.arch }},mode=max
-
-      - name: Export digest
-        run: echo "${{ steps.build.outputs.digest }}" > digest-${{ matrix.variant }}-${{ matrix.arch }}.txt
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: digest-${{ matrix.variant }}-${{ matrix.arch }}
-          path: digest-${{ matrix.variant }}-${{ matrix.arch }}.txt
-
-  docker-merge:
-    name: Docker merge ${{ matrix.variant }}
-    needs: docker
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - variant: without-browser
-            tags: |
-              type=semver,pattern={{version}}-without-browser
-              type=semver,pattern={{major}}.{{minor}}-without-browser
-              type=semver,pattern={{major}}-without-browser
-              type=raw,value=without-browser
-          - variant: with-browser
-            tags: |
-              type=semver,pattern={{version}}
-              type=semver,pattern={{major}}.{{minor}}
-              type=semver,pattern={{major}}
-              type=raw,value=latest
-              type=raw,value=with-browser
-    steps:
-      - uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - uses: docker/setup-buildx-action@v4
-
-      - uses: actions/download-artifact@v8
-        with:
-          pattern: digest-${{ matrix.variant }}-*
-          path: digests
-          merge-multiple: true
-
-      - uses: docker/metadata-action@v6
-        id: meta
-        with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/weban
-          flavor: |
-            latest=false
-          tags: ${{ matrix.tags }}
-
-      - name: Create manifest
-        env:
-          IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/weban
-          TAGS: ${{ steps.meta.outputs.tags }}
-          AMD64_DIGEST_FILE: digests/digest-${{ matrix.variant }}-amd64.txt
-          ARM64_DIGEST_FILE: digests/digest-${{ matrix.variant }}-arm64.txt
-        run: |
-          tag_args=()
-          for tag in $TAGS; do
-            tag_args+=("-t" "$tag")
-          done
-
-          docker buildx imagetools create "${tag_args[@]}" \
-            "$IMAGE@$(< "$AMD64_DIGEST_FILE")" \
-            "$IMAGE@$(< "$ARM64_DIGEST_FILE")"
-
   release:
     name: Release
     permissions:
       contents: write
-    needs: [build, docker, docker-merge]
+    needs: build
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
