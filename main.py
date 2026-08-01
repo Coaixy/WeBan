@@ -301,7 +301,7 @@ def run_account(
 if __name__ == "__main__":
     try:
         logger.info("神是不会向别人介绍自己的")
-        logger.info("5L2g5om+5Yiw5LqG56We55qE5L+h5oGvClFROiAzMDQ1ODMxMTY3CuW+ruS/oTogTmluZV9QYWxhY2U=")
+        logger.info("使用说明: https://weiban.letfate.com")
 
 
         # 加载配置文件
