@@ -1,0 +1,1191 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="安全微伴 config.toml 配置生成器">
+  <title>安全微伴配置生成器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f7f6f2;
+      --surface: #fffdf9;
+      --surface-muted: #efede7;
+      --surface-strong: #e5e2da;
+      --text: #2f2d2a;
+      --text-soft: #6f6b64;
+      --text-faint: #746f68;
+      --border: #d8d4cb;
+      --border-strong: #aaa49a;
+      --accent: #a24931;
+      --accent-soft: #f2dfd7;
+      --danger: #a23f35;
+      --button: #373431;
+      --button-text: #fbfaf6;
+      --focus: rgba(162, 73, 49, 0.24);
+      --shadow: rgba(72, 62, 48, 0.1);
+      --radius: 8px;
+      --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --page: #242321;
+        --surface: #2c2b28;
+        --surface-muted: #32312e;
+        --surface-strong: #3a3834;
+        --text: #efede7;
+        --text-soft: #b7b2a9;
+        --text-faint: #979188;
+        --border: #48453f;
+        --border-strong: #716b62;
+        --accent: #e08a69;
+        --accent-soft: #4a3128;
+        --danger: #f19a8e;
+        --button: #efede7;
+        --button-text: #2c2a27;
+        --focus: rgba(224, 138, 105, 0.28);
+        --shadow: rgba(10, 9, 8, 0.22);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-width: 320px;
+      background: var(--page);
+    }
+
+    body {
+      min-width: 320px;
+      min-height: 100dvh;
+      margin: 0;
+      color: var(--text);
+      background: var(--page);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.5;
+      letter-spacing: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+      letter-spacing: 0;
+    }
+
+    button {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: minmax(320px, 0.82fr) minmax(480px, 1.18fr);
+      width: 100%;
+      min-height: 100dvh;
+    }
+
+    .form-pane {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      padding: clamp(28px, 5vw, 72px);
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      align-self: flex-start;
+      gap: 10px;
+      min-height: 32px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 32px;
+      height: 32px;
+      place-items: center;
+      border: 1px solid color-mix(in srgb, var(--accent) 44%, var(--border));
+      border-radius: var(--radius);
+      color: var(--accent);
+      background: var(--accent-soft);
+      font-size: 14px;
+      font-weight: 750;
+    }
+
+    .intro {
+      max-width: 520px;
+      margin-top: clamp(56px, 10vh, 104px);
+    }
+
+    h1 {
+      max-width: 12ch;
+      margin: 0;
+      font-size: clamp(34px, 4.2vw, 50px);
+      font-weight: 520;
+      line-height: 1.12;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .intro-copy {
+      margin: 18px 0 0;
+      color: var(--text-soft);
+      font-size: 17px;
+    }
+
+    .config-form {
+      width: 100%;
+      max-width: 520px;
+      margin-top: 48px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin-top: 22px;
+    }
+
+    .field:first-child {
+      margin-top: 0;
+    }
+
+    .field-label {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .field-optional {
+      color: var(--text-faint);
+      font-size: 12px;
+      font-weight: 450;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .text-input {
+      width: 100%;
+      min-height: 48px;
+      padding: 11px 13px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      outline: none;
+      color: var(--text);
+      background: var(--page);
+      transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+    }
+
+    .text-input::placeholder {
+      color: var(--text-faint);
+      opacity: 1;
+    }
+
+    .text-input:hover {
+      border-color: var(--border-strong);
+    }
+
+    .text-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--focus);
+      background: var(--surface);
+    }
+
+    .text-input[aria-invalid="true"] {
+      border-color: var(--danger);
+    }
+
+    .text-input[aria-invalid="true"]:focus {
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 24%, transparent);
+    }
+
+    .secret-input {
+      padding-right: 66px;
+    }
+
+    .secret-toggle {
+      position: absolute;
+      top: 50%;
+      right: 2px;
+      min-width: 52px;
+      min-height: 44px;
+      padding: 0 8px;
+      border: 0;
+      border-radius: var(--radius);
+      color: var(--text-soft);
+      background: transparent;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transform: translateY(-50%);
+    }
+
+    .secret-toggle:hover {
+      color: var(--text);
+      background: var(--surface-strong);
+    }
+
+    .secret-toggle:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+
+    .secret-toggle:active {
+      transform: translateY(calc(-50% + 1px));
+    }
+
+    .field-help,
+    .field-error {
+      min-height: 18px;
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .field-help {
+      color: var(--text-faint);
+    }
+
+    .field-error {
+      display: none;
+      color: var(--danger);
+    }
+
+    .field.has-error .field-help {
+      display: none;
+    }
+
+    .field.has-error .field-error {
+      display: block;
+    }
+
+    .advanced-settings {
+      margin-top: 30px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .disclosure-summary {
+      min-height: 58px;
+      padding: 16px 2px;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .disclosure-summary::marker {
+      color: var(--accent);
+    }
+
+    .disclosure-summary:focus-visible {
+      border-radius: var(--radius);
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+    }
+
+    .summary-content {
+      display: inline-flex;
+      width: calc(100% - 12px);
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 18px;
+      padding-left: 6px;
+      vertical-align: middle;
+    }
+
+    .summary-title {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .summary-meta {
+      color: var(--text-faint);
+      font-size: 12px;
+      font-weight: 450;
+      text-align: right;
+    }
+
+    .advanced-content {
+      padding: 0 2px 8px;
+    }
+
+    .setting-group {
+      padding: 26px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .setting-title {
+      margin: 0 0 18px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .setting-grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .paired-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .advanced-content .field {
+      min-width: 0;
+      margin-top: 0;
+    }
+
+    select.text-input {
+      padding-right: 34px;
+      cursor: pointer;
+    }
+
+    input[type="number"] {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .check-control {
+      display: grid;
+      grid-template-columns: 20px minmax(0, 1fr);
+      gap: 11px;
+      align-items: start;
+      min-height: 48px;
+      padding: 12px 0;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .check-control input {
+      width: 18px;
+      height: 18px;
+      margin: 2px 0 0;
+      accent-color: var(--accent);
+    }
+
+    .check-copy {
+      display: grid;
+      gap: 3px;
+    }
+
+    .check-copy strong {
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .check-copy span {
+      color: var(--text-faint);
+      font-size: 12px;
+    }
+
+    .privacy-note {
+      margin: 22px 0 0;
+      color: var(--text-soft);
+      font-size: 13px;
+    }
+
+    .preview-pane {
+      display: flex;
+      align-items: flex-start;
+      min-width: 0;
+      min-height: 100dvh;
+      padding: clamp(28px, 5vw, 72px);
+      background: var(--surface-muted);
+    }
+
+    .preview-area {
+      position: sticky;
+      top: clamp(28px, 5vw, 72px);
+      width: 100%;
+      min-width: 0;
+      max-width: 820px;
+      margin: 0 auto;
+    }
+
+    .output-panel {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: 0 18px 50px var(--shadow);
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      min-height: 76px;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .file-name {
+      margin: 0;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .preview-state {
+      min-height: 20px;
+      margin: 0;
+      color: var(--text-soft);
+      font-size: 12px;
+      text-align: right;
+    }
+
+    .code-frame {
+      display: flex;
+      max-height: 54dvh;
+      overflow: hidden;
+      border-top: 1px solid var(--border);
+      background: var(--surface-muted);
+    }
+
+    .config-preview {
+      flex: 1;
+      width: 100%;
+      min-width: 0;
+      min-height: 0;
+      margin: 0;
+      padding: clamp(22px, 3.2vw, 34px);
+      overflow: auto;
+      color: var(--text);
+      background: transparent;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.75;
+      tab-size: 2;
+      white-space: pre;
+      scrollbar-color: var(--border-strong) transparent;
+    }
+
+    .config-details {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .config-details .disclosure-summary {
+      padding-right: 24px;
+      padding-left: 24px;
+    }
+
+    .preview-footer {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 20px;
+      padding: 20px 24px;
+    }
+
+    .paste-hint {
+      margin: 0;
+      color: var(--text-soft);
+      font-size: 13px;
+    }
+
+    .copy-button {
+      min-width: 126px;
+      min-height: 46px;
+      padding: 11px 18px;
+      border: 1px solid var(--button);
+      border-radius: var(--radius);
+      color: var(--button-text);
+      background: var(--button);
+      cursor: pointer;
+      font-weight: 700;
+      white-space: nowrap;
+      transition: opacity 160ms ease, transform 120ms ease, background-color 160ms ease, border-color 160ms ease;
+    }
+
+    .copy-button:hover {
+      opacity: 0.9;
+    }
+
+    .copy-button:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+    }
+
+    .copy-button:active {
+      transform: translateY(1px);
+    }
+
+    .copy-button.is-success {
+      border-color: var(--accent);
+      color: var(--surface);
+      background: var(--accent);
+    }
+
+    .mobile-action-bar {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        padding-bottom: calc(76px + env(safe-area-inset-bottom));
+      }
+
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .form-pane {
+        min-height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .intro {
+        margin-top: 52px;
+      }
+
+      .preview-pane {
+        min-height: auto;
+      }
+
+      .preview-area {
+        position: static;
+        max-width: none;
+        margin: 0;
+      }
+
+      .preview-footer {
+        grid-template-columns: 1fr;
+      }
+
+      .desktop-copy {
+        display: none;
+      }
+
+      .mobile-action-bar {
+        position: fixed;
+        z-index: 20;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        display: block;
+        padding: 10px 18px calc(10px + env(safe-area-inset-bottom));
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+        box-shadow: 0 -8px 24px var(--shadow);
+      }
+
+      .mobile-action-inner {
+        width: 100%;
+        max-width: 520px;
+        margin: 0 auto;
+      }
+
+      .mobile-action-bar .copy-button {
+        width: 100%;
+        min-height: 52px;
+      }
+
+      .code-frame {
+        max-height: 56dvh;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .form-pane {
+        padding: 18px 16px 24px;
+      }
+
+      .preview-pane {
+        padding: 24px 16px;
+      }
+
+      .intro {
+        margin-top: 28px;
+      }
+
+      h1 {
+        font-size: 32px;
+      }
+
+      .intro-copy {
+        margin-top: 12px;
+        font-size: 16px;
+      }
+
+      .config-form {
+        margin-top: 28px;
+      }
+
+      .field {
+        margin-top: 18px;
+      }
+
+      .paired-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-content {
+        align-items: flex-start;
+      }
+
+      .summary-meta {
+        max-width: 58%;
+      }
+
+      .preview-header {
+        align-items: flex-start;
+        min-height: 68px;
+        padding: 18px;
+      }
+
+      .preview-footer {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        padding: 18px;
+      }
+
+      .copy-button {
+        width: 100%;
+      }
+
+      .code-frame {
+        max-height: 50dvh;
+      }
+
+      .config-preview {
+        padding: 20px 16px;
+        font-size: 12px;
+      }
+
+      .config-details .disclosure-summary {
+        padding-right: 18px;
+        padding-left: 18px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <section class="form-pane" aria-labelledby="page-title">
+      <div class="brand" aria-label="WeBan 安全微伴">
+        <span class="brand-mark" aria-hidden="true">W</span>
+        <span>WeBan</span>
+      </div>
+
+      <header class="intro">
+        <h1 id="page-title">安全微伴配置</h1>
+        <p class="intro-copy">填写账号信息，生成可直接使用的配置。</p>
+      </header>
+
+      <form class="config-form" id="config-form" novalidate>
+        <div class="field" id="tenant-field">
+          <label class="field-label" for="tenant-name">
+            <span>学校名称</span>
+            <span class="field-optional">必填</span>
+          </label>
+          <div class="input-wrap">
+            <input
+              class="text-input"
+              id="tenant-name"
+              name="tenant_name"
+              type="text"
+              autocomplete="organization"
+              placeholder="学校全称"
+              aria-describedby="tenant-help tenant-error"
+              aria-invalid="false"
+            >
+          </div>
+          <p class="field-help" id="tenant-help">与安全微伴登录页显示的名称一致</p>
+          <p class="field-error" id="tenant-error" role="alert">请填写学校名称</p>
+        </div>
+
+        <div class="field" id="username-field">
+          <label class="field-label" for="username">
+            <span>用户名</span>
+            <span class="field-optional">必填</span>
+          </label>
+          <div class="input-wrap">
+            <input
+              class="text-input"
+              id="username"
+              name="username"
+              type="text"
+              autocomplete="username"
+              placeholder="通常为学号"
+              aria-describedby="username-help username-error"
+              aria-invalid="false"
+            >
+          </div>
+          <p class="field-help" id="username-help">请输入用于登录的账号</p>
+          <p class="field-error" id="username-error" role="alert">请填写用户名</p>
+        </div>
+
+        <div class="field" id="password-field">
+          <label class="field-label" for="password">
+            <span>密码</span>
+            <span class="field-optional">必填</span>
+          </label>
+          <div class="input-wrap">
+            <input
+              class="text-input secret-input"
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              placeholder="请输入密码"
+              aria-describedby="password-help password-error"
+              aria-invalid="false"
+            >
+            <button class="secret-toggle" type="button" data-secret-toggle="password" data-secret-label="密码" aria-label="显示密码" aria-controls="password" aria-pressed="false">显示</button>
+          </div>
+          <p class="field-help" id="password-help">默认与用户名相同，可以直接修改</p>
+          <p class="field-error" id="password-error" role="alert">请填写密码</p>
+        </div>
+
+        <details class="advanced-settings" id="advanced-settings">
+          <summary class="disclosure-summary">
+            <span class="summary-content">
+              <span class="summary-title">高级设置</span>
+              <span class="summary-meta">学习、考试、浏览器与 AI</span>
+            </span>
+          </summary>
+
+          <div class="advanced-content">
+            <section class="setting-group" aria-labelledby="task-settings-title">
+              <h2 class="setting-title" id="task-settings-title">学习与考试</h2>
+              <div class="setting-grid">
+                <div class="field">
+                  <label class="field-label" for="study-mode">学习模式</label>
+                  <select class="text-input" id="study-mode" name="study_mode">
+                    <option value="true" selected>正常学习</option>
+                    <option value="false">跳过学习</option>
+                    <option value="force">强制学习</option>
+                  </select>
+                  <p class="field-help">正常模式会跳过已经完成的内容</p>
+                </div>
+
+                <div class="field">
+                  <label class="field-label" for="exam-mode">考试模式</label>
+                  <select class="text-input" id="exam-mode" name="exam_mode">
+                    <option value="true" selected>正常考试</option>
+                    <option value="false">跳过考试</option>
+                    <option value="perfect">满分模式</option>
+                    <option value="force">强制考试</option>
+                  </select>
+                  <p class="field-help">正常模式会跳过已及格或已完成的考试</p>
+                </div>
+
+                <label class="check-control" for="random-answer">
+                  <input id="random-answer" name="random_answer" type="checkbox">
+                  <span class="check-copy">
+                    <strong>随机回答未匹配题目</strong>
+                    <span>单选随机，多选全选</span>
+                  </span>
+                </label>
+
+                <div class="setting-grid paired-grid">
+                  <div class="field">
+                    <label class="field-label" for="study-time">学习停留时间</label>
+                    <input class="text-input" id="study-time" name="study_time" type="number" inputmode="numeric" min="0" value="30">
+                    <p class="field-help">单位：秒</p>
+                  </div>
+
+                  <div class="field">
+                    <label class="field-label" for="match-rate">最低匹配率</label>
+                    <input class="text-input" id="match-rate" name="exam_submit_match_rate" type="number" inputmode="numeric" min="0" max="100" value="90">
+                    <p class="field-help">单位：百分比</p>
+                  </div>
+                </div>
+
+                <div class="setting-grid paired-grid">
+                  <div class="field">
+                    <label class="field-label" for="question-delay">答题基础等待</label>
+                    <input class="text-input" id="question-delay" type="number" inputmode="numeric" min="0" value="3">
+                    <p class="field-help">单位：秒</p>
+                  </div>
+
+                  <div class="field">
+                    <label class="field-label" for="question-delay-max">随机等待上限</label>
+                    <input class="text-input" id="question-delay-max" type="number" inputmode="numeric" min="0" value="10">
+                    <p class="field-help">单位：秒</p>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label class="field-label" for="max-workers">最大并发账号数</label>
+                  <input class="text-input" id="max-workers" name="max_workers" type="number" inputmode="numeric" min="1" value="5">
+                  <p class="field-help">实际线程数不会超过账号数量</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="setting-group" aria-labelledby="browser-settings-title">
+              <h2 class="setting-title" id="browser-settings-title">浏览器与调试</h2>
+              <div class="setting-grid">
+                <div class="field">
+                  <label class="field-label" for="browser-path">浏览器路径</label>
+                  <input class="text-input" id="browser-path" name="browser_path" type="text" placeholder="自动检测">
+                  <p class="field-help">仅在自动检测失败时指定可执行文件</p>
+                </div>
+
+                <div class="setting-grid paired-grid">
+                  <div class="field">
+                    <label class="field-label" for="cdp-host">CDP 地址</label>
+                    <input class="text-input" id="cdp-host" name="cdp_host" type="text" placeholder="host.docker.internal">
+                    <p class="field-help">连接已有浏览器时填写</p>
+                  </div>
+
+                  <div class="field">
+                    <label class="field-label" for="cdp-port">CDP 端口</label>
+                    <input class="text-input" id="cdp-port" name="cdp_port" type="number" inputmode="numeric" min="0" max="65535" value="0">
+                    <p class="field-help">默认关闭</p>
+                  </div>
+                </div>
+
+                <label class="check-control" for="debug">
+                  <input id="debug" name="debug" type="checkbox">
+                  <span class="check-copy">
+                    <strong>启用调试日志</strong>
+                    <span>输出请求、响应与验证码等详细信息</span>
+                  </span>
+                </label>
+              </div>
+            </section>
+
+            <section class="setting-group" aria-labelledby="ai-settings-title">
+              <h2 class="setting-title" id="ai-settings-title">AI 搜题</h2>
+              <div class="setting-grid">
+                <label class="check-control" for="ai-enable">
+                  <input id="ai-enable" name="ai_enable" type="checkbox">
+                  <span class="check-copy">
+                    <strong>启用 AI 搜题</strong>
+                    <span>题库没有匹配结果时调用兼容接口</span>
+                  </span>
+                </label>
+
+                <div class="field">
+                  <label class="field-label" for="ai-base-url">API 基础路径</label>
+                  <input class="text-input" id="ai-base-url" name="ai_base_url" type="url" value="https://api.deepseek.com" inputmode="url">
+                </div>
+
+                <div class="field">
+                  <label class="field-label" for="ai-api-key">API Key</label>
+                  <div class="input-wrap">
+                    <input class="text-input secret-input" id="ai-api-key" name="ai_api_key" type="password" autocomplete="off" placeholder="输入 API Key">
+                    <button class="secret-toggle" type="button" data-secret-toggle="ai-api-key" data-secret-label="API Key" aria-label="显示 API Key" aria-controls="ai-api-key" aria-pressed="false">显示</button>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label class="field-label" for="ai-model">模型名称</label>
+                  <input class="text-input" id="ai-model" name="ai_model" type="text" value="deepseek-chat">
+                </div>
+
+                <div class="setting-grid paired-grid">
+                  <div class="field">
+                    <label class="field-label" for="ai-timeout">请求超时</label>
+                    <input class="text-input" id="ai-timeout" name="ai_timeout" type="number" inputmode="numeric" min="1" value="60">
+                    <p class="field-help">单位：秒</p>
+                  </div>
+
+                  <div class="field">
+                    <label class="field-label" for="ai-retries">失败重试次数</label>
+                    <input class="text-input" id="ai-retries" name="ai_max_retries" type="number" inputmode="numeric" min="0" value="2">
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </details>
+
+        <p class="privacy-note">账号信息仅在当前页面中处理</p>
+      </form>
+    </section>
+
+    <section class="preview-pane" aria-labelledby="preview-title">
+      <div class="preview-area">
+        <div class="output-panel">
+          <header class="preview-header">
+            <h2 class="file-name" id="preview-title">config.toml</h2>
+            <p class="preview-state" id="preview-state" aria-live="polite">实时生成</p>
+          </header>
+
+          <details class="config-details" id="config-details">
+            <summary class="disclosure-summary">
+              <span class="summary-content">
+                <span class="summary-title">文件内容</span>
+                <span class="summary-meta">需要时展开查看</span>
+              </span>
+            </summary>
+            <div class="code-frame">
+              <pre class="config-preview" id="config-preview" tabindex="0" aria-label="生成的配置内容"></pre>
+            </div>
+          </details>
+
+          <footer class="preview-footer">
+            <p class="paste-hint">复制后粘贴并保存为 <strong>config.toml</strong></p>
+            <button class="copy-button desktop-copy" type="submit" form="config-form" data-copy-button>复制配置</button>
+          </footer>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="mobile-action-bar">
+    <div class="mobile-action-inner">
+      <button class="copy-button" type="submit" form="config-form" data-copy-button>复制配置</button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const form = document.querySelector("#config-form");
+      const tenantInput = document.querySelector("#tenant-name");
+      const usernameInput = document.querySelector("#username");
+      const passwordInput = document.querySelector("#password");
+      const secretToggles = document.querySelectorAll("[data-secret-toggle]");
+      const advancedInputs = document.querySelectorAll(".advanced-content input, .advanced-content select");
+      const configDetails = document.querySelector("#config-details");
+      const preview = document.querySelector("#config-preview");
+      const previewState = document.querySelector("#preview-state");
+      const copyButtons = document.querySelectorAll("[data-copy-button]");
+      const settings = {
+        studyMode: document.querySelector("#study-mode"),
+        examMode: document.querySelector("#exam-mode"),
+        randomAnswer: document.querySelector("#random-answer"),
+        studyTime: document.querySelector("#study-time"),
+        questionDelay: document.querySelector("#question-delay"),
+        questionDelayMax: document.querySelector("#question-delay-max"),
+        matchRate: document.querySelector("#match-rate"),
+        maxWorkers: document.querySelector("#max-workers"),
+        browserPath: document.querySelector("#browser-path"),
+        cdpHost: document.querySelector("#cdp-host"),
+        cdpPort: document.querySelector("#cdp-port"),
+        debug: document.querySelector("#debug"),
+        aiEnable: document.querySelector("#ai-enable"),
+        aiBaseUrl: document.querySelector("#ai-base-url"),
+        aiApiKey: document.querySelector("#ai-api-key"),
+        aiModel: document.querySelector("#ai-model"),
+        aiTimeout: document.querySelector("#ai-timeout"),
+        aiRetries: document.querySelector("#ai-retries"),
+      };
+      let passwordFollowsUsername = true;
+      let resetTimer;
+
+      // 桌面和移动端各有一个响应式按钮，状态必须始终同步。
+      const setCopyButtonState = (copied) => {
+        copyButtons.forEach((button) => {
+          button.classList.toggle("is-success", copied);
+          button.textContent = copied ? "已复制" : "复制配置";
+        });
+      };
+
+      const hasCopySuccess = () => Array.from(copyButtons).some((button) => button.classList.contains("is-success"));
+
+      // JSON 字符串的转义规则可安全覆盖此处需要的 TOML 基础字符串。
+      const toTomlString = (value) => JSON.stringify(value);
+
+      // 数值被清空或超出控件范围时回退到安全值，避免生成无效 TOML。
+      const getInteger = (input, fallback) => {
+        const parsed = Number.parseInt(input.value, 10);
+        if (!Number.isFinite(parsed)) {
+          return fallback;
+        }
+
+        const minimum = input.min === "" ? Number.NEGATIVE_INFINITY : Number(input.min);
+        const maximum = input.max === "" ? Number.POSITIVE_INFINITY : Number(input.max);
+        return Math.min(maximum, Math.max(minimum, parsed));
+      };
+
+      const getConfig = () => {
+        const tenantName = tenantInput.value.trim();
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
+        const examQuestionTime = `${getInteger(settings.questionDelay, 3)},${getInteger(settings.questionDelayMax, 10)}`;
+
+        return `# WeBan 配置文件
+
+[settings]
+study_mode = ${toTomlString(settings.studyMode.value)}
+exam_mode = ${toTomlString(settings.examMode.value)}
+random_answer = ${settings.randomAnswer.checked}
+study_time = ${getInteger(settings.studyTime, 30)}
+exam_question_time = ${toTomlString(examQuestionTime)}
+exam_submit_match_rate = ${getInteger(settings.matchRate, 90)}
+max_workers = ${getInteger(settings.maxWorkers, 5)}
+browser_path = ${toTomlString(settings.browserPath.value.trim())}
+cdp_host = ${toTomlString(settings.cdpHost.value.trim())}
+cdp_port = ${getInteger(settings.cdpPort, 0)}
+debug = ${settings.debug.checked}
+
+[ai]
+enable = ${settings.aiEnable.checked}
+base_url = ${toTomlString(settings.aiBaseUrl.value.trim())}
+api_key = ${toTomlString(settings.aiApiKey.value.trim())}
+model = ${toTomlString(settings.aiModel.value.trim())}
+timeout = ${getInteger(settings.aiTimeout, 60)}
+max_retries = ${getInteger(settings.aiRetries, 2)}
+
+[[account]]
+tenant_name = ${toTomlString(tenantName)}
+username = ${toTomlString(username)}
+password = ${toTomlString(password)}
+`;
+      };
+
+      const updatePreview = () => {
+        preview.textContent = getConfig();
+        if (hasCopySuccess()) {
+          clearTimeout(resetTimer);
+          setCopyButtonState(false);
+          previewState.textContent = "实时生成";
+        } else if (![tenantInput, usernameInput, passwordInput].some((input) => input.getAttribute("aria-invalid") === "true")) {
+          previewState.textContent = "实时生成";
+        }
+      };
+
+      const setFieldError = (input, hasError) => {
+        const field = input.closest(".field");
+        field.classList.toggle("has-error", hasError);
+        input.setAttribute("aria-invalid", String(hasError));
+      };
+
+      const validate = () => {
+        const requiredInputs = [tenantInput, usernameInput, passwordInput];
+        let firstInvalid = null;
+
+        requiredInputs.forEach((input) => {
+          const hasError = input.value.trim() === "";
+          setFieldError(input, hasError);
+          firstInvalid ||= hasError ? input : null;
+        });
+
+        if (firstInvalid) {
+          firstInvalid.focus();
+          previewState.textContent = "请补全必填项";
+          return false;
+        }
+
+        return true;
+      };
+
+      // file 协议下 Clipboard API 可能不可用，因此保留传统复制方式作为回退。
+      const copyText = async (text) => {
+        if (navigator.clipboard && window.isSecureContext) {
+          try {
+            await navigator.clipboard.writeText(text);
+            return;
+          } catch (error) {
+            console.warn("Clipboard API 不可用，尝试兼容复制方式。", error);
+          }
+        }
+
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.inset = "0 auto auto -9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand("copy");
+        textarea.remove();
+
+        if (!copied) {
+          throw new Error("浏览器未允许复制");
+        }
+      };
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!validate()) {
+          return;
+        }
+
+        try {
+          await copyText(getConfig());
+          setCopyButtonState(true);
+          previewState.textContent = "配置已复制到剪贴板";
+          clearTimeout(resetTimer);
+          resetTimer = window.setTimeout(() => {
+            setCopyButtonState(false);
+            previewState.textContent = "实时生成";
+          }, 2400);
+        } catch (error) {
+          previewState.textContent = "复制失败，请手动选择配置内容";
+          configDetails.open = true;
+          preview.focus();
+          console.error(error);
+        }
+      });
+
+      tenantInput.addEventListener("input", () => {
+        if (tenantInput.getAttribute("aria-invalid") === "true") {
+          setFieldError(tenantInput, tenantInput.value.trim() === "");
+        }
+        updatePreview();
+      });
+
+      usernameInput.addEventListener("input", () => {
+        if (usernameInput.getAttribute("aria-invalid") === "true") {
+          setFieldError(usernameInput, usernameInput.value.trim() === "");
+        }
+        if (passwordFollowsUsername) {
+          passwordInput.value = usernameInput.value.trim();
+          if (passwordInput.getAttribute("aria-invalid") === "true") {
+            setFieldError(passwordInput, passwordInput.value === "");
+          }
+        }
+        updatePreview();
+      });
+
+      passwordInput.addEventListener("input", () => {
+        passwordFollowsUsername = false;
+        if (passwordInput.getAttribute("aria-invalid") === "true") {
+          setFieldError(passwordInput, passwordInput.value === "");
+        }
+        updatePreview();
+      });
+
+      advancedInputs.forEach((input) => {
+        input.addEventListener("input", updatePreview);
+      });
+
+      secretToggles.forEach((toggle) => {
+        toggle.addEventListener("click", () => {
+          const input = document.querySelector(`#${toggle.dataset.secretToggle}`);
+          const shouldShow = input.type === "password";
+          input.type = shouldShow ? "text" : "password";
+          toggle.textContent = shouldShow ? "隐藏" : "显示";
+          toggle.setAttribute("aria-label", `${shouldShow ? "隐藏" : "显示"}${toggle.dataset.secretLabel}`);
+          toggle.setAttribute("aria-pressed", String(shouldShow));
+          input.focus();
+        });
+      });
+
+      updatePreview();
+    })();
+  </script>
+</body>
+</html>
