@@ -12,12 +12,12 @@ study_mode = "true"
 # true  = 正常考试，已及格/已完成的考试默认跳过
 # perfect = 达到满分为止，如果只剩一次考试机会且题库无法完全匹配则会停止
 # force = 强制考试，即使已及格也继续参加考试，除非没有考试机会了
-exam_mode = "perfect"
+exam_mode = "true"
 
 # 遇到题库中没有的题目时是否随机作答：
 # true  = 单选随机，多选全选
 # false = 在终端中等待手动输入答案
-random_answer = true
+random_answer = false
 
 # 每个学习任务的最少停留时长（秒）
 # 过快不会记录学习进度，数值越大越稳妥，但整体耗时也会越长
@@ -25,7 +25,7 @@ study_time = 30
 
 # 每道考试题的答题等待时长（秒）
 # 格式："基础等待时间,随机等待上限"
-exam_question_time = "3,3"
+exam_question_time = "3,10"
 
 # 允许提交试卷的最低题库匹配率（百分比）
 # 当匹配率低于此值且 random_answer = false 时，程序会放弃交卷
